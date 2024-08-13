@@ -1,113 +1,181 @@
-import Image from "next/image";
+'use client';
+
+import { useRef, useState } from "react";
 
 export default function Home() {
+  const initialTranscript = [
+    { word: 'Hello', start_time: 0, duration: 500 },
+    { word: 'world', start_time: 500, duration: 700 },
+    { word: 'This', start_time: 1200, duration: 300 },
+    { word: 'is', start_time: 1500, duration: 200 },
+    { word: 'a', start_time: 1700, duration: 100 },
+    { word: 'test', start_time: 1800, duration: 400 },
+    { word: 'transcript', start_time: 2200, duration: 600 },
+    { word: 'for', start_time: 2800, duration: 200 },
+    { word: 'playback', start_time: 3000, duration: 500 },
+    { word: 'and', start_time: 3500, duration: 250 },
+    { word: 'editing', start_time: 3750, duration: 800 },
+    { word: 'features.', start_time: 4550, duration: 650 },
+  ];
+
+  const dialogRef = useRef<HTMLDivElement>(null);
+  let [selected, setSelected] = useState(-1);
+  const [transcript, setTranscript] = useState(initialTranscript);
+  const [showDialog, setShowDialog] = useState(false);
+  const [dialogText, setDialogText] = useState('');
+  const playPauseRef = useRef<HTMLButtonElement>(null);
+  const stopRef = useRef<HTMLButtonElement>(null);
+  let playing = false;
+  const setPlaying = (value: boolean) => {
+    playing = value;
+    if (playPauseRef.current) {
+      playPauseRef.current.innerText = (value ? "Stop" : "Play");
+    }
+  }
+  let active = -1;
+  let timeouts: NodeJS.Timeout[] = [];
+
+  const refs = transcript.map(() => useRef<HTMLSpanElement>(null));
+
+  let words = transcript.map((word, index) => (
+    <span
+      key={index}
+      ref={refs[index]}
+      onClick={() => {
+        setSelected(index);
+      }}
+      onDoubleClick={(e) => {
+        setShowDialog(true);
+        let { x, y, height } = (e.target as HTMLSpanElement).getBoundingClientRect();
+        y += height;
+        if (dialogRef.current) {
+          dialogRef.current.style.left = `${x}px`;
+          dialogRef.current.style.top = `${y}px`;
+        }
+        setDialogText(word.word);
+      }}
+      className={`inline-block p-0.5 hover:bg-gray-700 rounded border border-transparent ${selected == index && "!border-orange-300"}`}>{word.word}</span>
+  ))
+
+  const playback = (index: number) => {
+    if (index >= transcript.length || !playing) {
+      setPlaying(false);
+      timeouts = [];
+      active = -1;
+      return;
+    }
+
+    let wordRef = refs[index].current;
+    if (!wordRef) return;
+    wordRef.classList.add('bg-orange-400');
+    active = index;
+
+    setTimeout(() => {
+      wordRef.classList.remove('bg-orange-400');
+      if (index == transcript.length - 1) {
+        setPlaying(false);
+      }
+    }, transcript[index].duration);
+
+    if (index == transcript.length - 1) return;
+    timeouts.push(setTimeout(() => {
+      playback(index + 1);
+    }, transcript[index + 1].start_time - transcript[index].start_time));
+  }
+
+  const clearTimeouts = () => {
+    timeouts.forEach(timeout => clearTimeout(timeout));
+    timeouts = [];
+  }
+
   return (
-    <main className="flex min-h-screen flex-col items-center justify-between p-24">
-      <div className="z-10 w-full max-w-5xl items-center justify-between font-mono text-sm lg:flex">
-        <p className="fixed left-0 top-0 flex w-full justify-center border-b border-gray-300 bg-gradient-to-b from-zinc-200 pb-6 pt-8 backdrop-blur-2xl dark:border-neutral-800 dark:bg-zinc-800/30 dark:from-inherit lg:static lg:w-auto  lg:rounded-xl lg:border lg:bg-gray-200 lg:p-4 lg:dark:bg-zinc-800/30">
-          Get started by editing&nbsp;
-          <code className="font-mono font-bold">src/app/page.tsx</code>
-        </p>
-        <div className="fixed bottom-0 left-0 flex h-48 w-full items-end justify-center bg-gradient-to-t from-white via-white dark:from-black dark:via-black lg:static lg:size-auto lg:bg-none">
-          <a
-            className="pointer-events-none flex place-items-center gap-2 p-8 lg:pointer-events-auto lg:p-0"
-            href="https://vercel.com?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            By{" "}
-            <Image
-              src="/vercel.svg"
-              alt="Vercel Logo"
-              className="dark:invert"
-              width={100}
-              height={24}
-              priority
-            />
-          </a>
+    <main className="m-10 flex flex-col items-center gap-10">
+      <h1 className="font-bold text-2xl">Transcript Editor</h1>
+      <div className="bg-[#2d2d2d] p-5 w-[60%] h-96">
+        <div className="textarea border border-gray-400 p-5 rounded h-full cursor-default select-none">
+          {words}
         </div>
       </div>
-
-      <div className="relative z-[-1] flex place-items-center before:absolute before:h-[300px] before:w-full before:-translate-x-1/2 before:rounded-full before:bg-gradient-radial before:from-white before:to-transparent before:blur-2xl before:content-[''] after:absolute after:-z-20 after:h-[180px] after:w-full after:translate-x-1/3 after:bg-gradient-conic after:from-sky-200 after:via-blue-200 after:blur-2xl after:content-[''] before:dark:bg-gradient-to-br before:dark:from-transparent before:dark:to-blue-700 before:dark:opacity-10 after:dark:from-sky-900 after:dark:via-[#0141ff] after:dark:opacity-40 sm:before:w-[480px] sm:after:w-[240px] before:lg:h-[360px]">
-        <Image
-          className="relative dark:drop-shadow-[0_0_0.3rem_#ffffff70] dark:invert"
-          src="/next.svg"
-          alt="Next.js Logo"
-          width={180}
-          height={37}
-          priority
+      <div className="flex gap-4 justify-between w-[60%]">
+        <div>
+          <button
+            className="font-semibold bg-orange-500 m-1 py-1 p-2 rounded"
+            onClick={() => {
+              if (active > -1) refs[active].current?.classList.remove('bg-orange-400');
+              clearTimeouts();
+              setPlaying(true);
+              playback(0);
+            }}
+          >Start from Beginning</button>
+          <button
+            className="font-semibold bg-orange-500 m-1 py-1 p-2 rounded disabled:opacity-50"
+            disabled={selected == -1}
+            onClick={() => {
+              if (active > -1) refs[active].current?.classList.remove('bg-orange-400');
+              clearTimeouts();
+              setPlaying(true);
+              playback(selected);
+            }}
+          >Start from Selected</button>
+        </div>
+        <button
+          className="font-semibold bg-orange-700 m-1 py-1 p-2 rounded disabled:opacity-50"
+          // disabled={!playing}
+          ref={stopRef}
+          onClick={() => {
+            if (active > -1) refs[active].current?.classList.remove('bg-orange-400');
+            setPlaying(false)
+          }}
+        >Stop</button>
+      </div>
+      {<div className={`dialog flex flex-col items-end bg-[#1f1f1f] p-3 rounded-lg fixed text-sm ${!showDialog && "hidden"}`} ref={dialogRef}>
+        <input
+          type="text"
+          value={dialogText}
+          className="bg-transparent outline-none border border-gray-300 p-2 rounded-lg"
+          onChange={(e) => {
+            setDialogText(e.target.value);
+          }}
+          onKeyDown={(e) => {
+            if (e.key == 'Enter') {
+              if (dialogText == '') return;
+              setTranscript(transcript.map((item, index) => {
+                if (index == selected) {
+                  return { ...item, word: dialogText };
+                }
+                return item;
+              }))
+              setShowDialog(false);
+            }
+          }}
         />
-      </div>
-
-      <div className="mb-32 grid text-center lg:mb-0 lg:w-full lg:max-w-5xl lg:grid-cols-4 lg:text-left">
-        <a
-          href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          className="group rounded-lg border border-transparent px-5 py-4 transition-colors hover:border-gray-300 hover:bg-gray-100 hover:dark:border-neutral-700 hover:dark:bg-neutral-800/30"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2 className="mb-3 text-2xl font-semibold">
-            Docs{" "}
-            <span className="inline-block transition-transform group-hover:translate-x-1 motion-reduce:transform-none">
-              -&gt;
-            </span>
-          </h2>
-          <p className="m-0 max-w-[30ch] text-sm opacity-50">
-            Find in-depth information about Next.js features and API.
-          </p>
-        </a>
-
-        <a
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          className="group rounded-lg border border-transparent px-5 py-4 transition-colors hover:border-gray-300 hover:bg-gray-100 hover:dark:border-neutral-700 hover:dark:bg-neutral-800/30"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2 className="mb-3 text-2xl font-semibold">
-            Learn{" "}
-            <span className="inline-block transition-transform group-hover:translate-x-1 motion-reduce:transform-none">
-              -&gt;
-            </span>
-          </h2>
-          <p className="m-0 max-w-[30ch] text-sm opacity-50">
-            Learn about Next.js in an interactive course with&nbsp;quizzes!
-          </p>
-        </a>
-
-        <a
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          className="group rounded-lg border border-transparent px-5 py-4 transition-colors hover:border-gray-300 hover:bg-gray-100 hover:dark:border-neutral-700 hover:dark:bg-neutral-800/30"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2 className="mb-3 text-2xl font-semibold">
-            Templates{" "}
-            <span className="inline-block transition-transform group-hover:translate-x-1 motion-reduce:transform-none">
-              -&gt;
-            </span>
-          </h2>
-          <p className="m-0 max-w-[30ch] text-sm opacity-50">
-            Explore starter templates for Next.js.
-          </p>
-        </a>
-
-        <a
-          href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          className="group rounded-lg border border-transparent px-5 py-4 transition-colors hover:border-gray-300 hover:bg-gray-100 hover:dark:border-neutral-700 hover:dark:bg-neutral-800/30"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2 className="mb-3 text-2xl font-semibold">
-            Deploy{" "}
-            <span className="inline-block transition-transform group-hover:translate-x-1 motion-reduce:transform-none">
-              -&gt;
-            </span>
-          </h2>
-          <p className="m-0 max-w-[30ch] text-balance text-sm opacity-50">
-            Instantly deploy your Next.js site to a shareable URL with Vercel.
-          </p>
-        </a>
-      </div>
+        <div>
+          <button
+            className="font-semibold bg-[#333333] m-1 py-1 p-2 rounded"
+            onClick={() => {
+              setShowDialog(false);
+            }}
+          >
+            Cancel
+          </button>
+          <button
+            className="font-semibold bg-orange-400 m-1 py-1 p-2 rounded disabled:opacity-50"
+            disabled={dialogText == ''}
+            onClick={() => {
+              if (dialogText == '') return;
+              setTranscript(transcript.map((item, index) => {
+                if (index == selected) {
+                  return { ...item, word: dialogText };
+                }
+                return item;
+              }))
+              setShowDialog(false);
+            }}
+          >
+            Save
+          </button>
+        </div>
+      </div>}
     </main>
   );
 }
