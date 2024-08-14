@@ -173,23 +173,22 @@ export default function Home() {
   const [showDialog, setShowDialog] = useState(false);
   const [dialogText, setDialogText] = useState('');
   const stopRef = useRef<HTMLButtonElement>(null);
+  const refs = useRef<(HTMLSpanElement | null)[]>([]);
   let playing = false;
   let active = -1;
   let timeouts: NodeJS.Timeout[] = [];
 
   useEffect(() => {
     return () => {
-      if (active > -1) refs[active].current?.classList.remove('bg-orange-400');
+      if (active > -1) refs.current[active]?.classList.remove('bg-orange-400');
       clearTimeouts();
     }
   }, [selected])
 
-  const refs = transcript.map(() => useRef<HTMLSpanElement>(null));
-
   let words = transcript.map((word, index) => (
     <span
       key={index}
-      ref={refs[index]}
+      ref={(el) => {if (el) refs.current[index] = el}}
       onClick={() => {
         setSelected(index);
       }}
@@ -208,13 +207,13 @@ export default function Home() {
 
   const playback = (index: number) => {
     if (index >= transcript.length || !playing) {
-      playing = false;
+      playing = false
       timeouts = [];
       active = -1;
       return;
     }
 
-    let wordRef = refs[index].current;
+    let wordRef = refs.current[index];
     if (!wordRef) return;
     wordRef.classList.add('bg-orange-400');
     active = index;
@@ -223,7 +222,7 @@ export default function Home() {
     setTimeout(() => {
       wordRef.classList.remove('bg-orange-400');
       if (index == transcript.length - 1) {
-        playing = false;
+        playing = false
       }
     }, transcript[index].duration);
 
@@ -251,9 +250,9 @@ export default function Home() {
           <button
             className="font-semibold bg-orange-500 m-1 py-1 p-2 rounded"
             onClick={() => {
-              if (active > -1) refs[active].current?.classList.remove('bg-orange-400');
+              if (active > -1) refs.current[active]?.classList.remove('bg-orange-400');
               clearTimeouts();
-              playing = true;
+              playing = true
               playback(0);
             }}
           >Start from Beginning</button>
@@ -261,9 +260,9 @@ export default function Home() {
             className="font-semibold bg-orange-500 m-1 py-1 p-2 rounded disabled:opacity-50"
             disabled={selected == -1}
             onClick={() => {
-              if (active > -1) refs[active].current?.classList.remove('bg-orange-400');
+              if (active > -1) refs.current[active]?.classList.remove('bg-orange-400');
               clearTimeouts();
-              playing = true;
+              playing = true
               playback(selected);
             }}
           >Start from Selected</button>
@@ -273,8 +272,8 @@ export default function Home() {
           ref={stopRef}
           onClick={() => {
             clearTimeouts();
-            if (active > -1) refs[active].current?.classList.remove('bg-orange-400');
-            playing = false;
+            if (active > -1) refs.current[active]?.classList.remove('bg-orange-400');
+            playing = false
           }}
         >Stop</button>
       </div>
