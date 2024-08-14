@@ -241,6 +241,7 @@ export default function Home() {
     <main className="m-10 flex flex-col items-center gap-10">
       <h1 className="font-bold text-2xl">Transcript Editor</h1>
       <div className="bg-[#2d2d2d] p-5 w-[60%] h-96">
+        <p className="text-xs">(Double click to edit a word)</p>
         <div className="textarea border border-gray-400 p-5 rounded h-full cursor-default select-none overflow-scroll">
           {words}
         </div>
